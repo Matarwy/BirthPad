@@ -1,0 +1,12 @@
+{
+  "name": "mainnet",
+  "apiBaseUrl": "https://api.birthpad.example",
+  "tonNetwork": "mainnet",
+  "contracts": {
+    "launchFactory": "EQ_MAIN_FACTORY"
+  },
+  "features": {
+    "strictRateLimit": true,
+    "auditLogging": true
+  }
+}

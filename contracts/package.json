@@ -6,7 +6,8 @@
     "dev": "pnpm run build -- --watch",
     "build": "tact --config tact.config.json",
     "lint": "echo 'No lint configured for contracts yet'",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "echo 'No explicit typecheck for Tact contracts'"
   },
   "devDependencies": {
     "@tact-lang/compiler": "^1.4.0",

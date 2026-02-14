@@ -15,6 +15,7 @@ const sign = (wallet: string, nonce: string, action: string, body: unknown) => {
 
 describe('api', () => {
   beforeAll(async () => {
+    process.env.ADMIN_WALLETS = 'EQ_admin_wallet';
     startTonIndexerWorker();
     server = app.listen(0);
     await new Promise<void>((resolve) => server.once('listening', () => resolve()));
@@ -38,6 +39,16 @@ describe('api', () => {
       totalSupply: '1000000',
       startsAt: new Date().toISOString(),
       endsAt: new Date(Date.now() + 3_600_000).toISOString(),
+      teamVesting: {
+        enabled: true,
+        cliffSeconds: 3600,
+        durationSeconds: 86_400,
+        unlockStartAt: new Date(Date.now() + 3_600_000).toISOString(),
+      },
+      liquidityLock: {
+        enabled: true,
+        lockUntil: new Date(Date.now() + 86_400_000).toISOString(),
+      },
     };
 
     const wallet = 'EQ_test_wallet';
@@ -71,26 +82,43 @@ describe('api', () => {
     expect(detailResp.status).toBe(200);
     const detail = await detailResp.json();
     expect(Number(detail.progress.raised)).toBeGreaterThanOrEqual(250);
+    expect(detail.sale.teamVesting.enabled).toBe(true);
+    expect(detail.sale.liquidityLock.enabled).toBe(true);
+
+
+    const forbiddenFinalize = await fetch(`${baseUrl}/projects/${created.project.id}/finalize`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-wallet-address': wallet,
+        'x-wallet-nonce': 'forbidden-finalize',
+        'x-wallet-signature': sign(wallet, 'forbidden-finalize', 'finalize-project', {}),
+      },
+      body: JSON.stringify({}),
+    });
+    expect(forbiddenFinalize.status).toBe(403);
 
     const finalizeResp = await fetch(`${baseUrl}/projects/${created.project.id}/finalize`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-wallet-address': wallet,
+        'x-wallet-address': 'EQ_admin_wallet',
         'x-wallet-nonce': '3',
-        'x-wallet-signature': sign(wallet, '3', 'finalize-project', {}),
+        'x-wallet-signature': sign('EQ_admin_wallet', '3', 'finalize-project', {}),
       },
       body: JSON.stringify({}),
     });
     expect(finalizeResp.status).toBe(200);
 
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
     const refundResp = await fetch(`${baseUrl}/projects/${created.project.id}/refund`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-wallet-address': wallet,
+        'x-wallet-address': 'EQ_admin_wallet',
         'x-wallet-nonce': '4',
-        'x-wallet-signature': sign(wallet, '4', 'refund-project', {}),
+        'x-wallet-signature': sign('EQ_admin_wallet', '4', 'refund-project', {}),
       },
       body: JSON.stringify({}),
     });
