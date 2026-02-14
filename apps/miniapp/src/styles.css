@@ -1,7 +1,11 @@
 :root {
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: #f5f5f5;
-  background: #101828;
+  color: #f5f8ff;
+  background: #0f172a;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
@@ -10,12 +14,141 @@ body {
 
 .container {
   min-height: 100vh;
-  padding: 2rem;
+  padding: 1rem;
+  background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
 }
 
+.container.light {
+  color: #111827;
+  background: #eef2ff;
+}
+
+.topbar,
 .card {
-  background: #1d2939;
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  margin-top: 1rem;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  padding: 1rem;
+}
+
+.light .topbar,
+.light .card {
+  background: #fff;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.row,
+.tabs,
+.section-head,
+.modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.tabs {
+  margin: 0.75rem 0;
+}
+
+button,
+input {
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: #1e293b;
+  color: inherit;
+  padding: 0.55rem 0.8rem;
+}
+
+.light button,
+.light input {
+  background: #f8fafc;
+}
+
+.panel-stack {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.metrics-grid,
+.form-grid {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.progress-wrap {
+  margin: 0.5rem 0;
+}
+
+.progress-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #334155;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22d3ee, #60a5fa);
+}
+
+.pill {
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.78rem;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+}
+
+.pill.connected,
+.pill.confirmed {
+  color: #22c55e;
+}
+
+.pill.pending {
+  color: #f59e0b;
+}
+
+.pill.refunded {
+  color: #ef4444;
+}
+
+.list-reset {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tx-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0;
+  border-bottom: 1px dashed rgba(148, 163, 184, 0.2);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.modal {
+  background: #111827;
+  width: min(420px, 100%);
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.error-text {
+  color: #f87171;
 }
