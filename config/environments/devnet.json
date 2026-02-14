@@ -7,6 +7,12 @@
   },
   "features": {
     "strictRateLimit": false,
-    "auditLogging": true
+    "auditLogging": true,
+    "opsAnomalyThresholds": {
+      "bucketHours": 12,
+      "refundWarningCount": 2,
+      "refundCriticalCount": 4,
+      "buyDropoffLookbackHours": 3
+    }
   }
 }

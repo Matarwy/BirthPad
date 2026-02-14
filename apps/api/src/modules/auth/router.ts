@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { deploymentConfig, deploymentEnv } from '../../config/environments';
 
 const loginSchema = z.object({
   telegramInitData: z.string().min(1),
@@ -16,6 +17,7 @@ authRouter.post('/login', (req, res) => {
   return res.json({
     token: 'dev-token',
     user: { id: 'tg-user', role: 'founder' },
-    deploymentEnv: process.env.DEPLOY_ENV ?? 'devnet',
+    deploymentEnv,
+    contracts: deploymentConfig.contracts,
   });
 });

@@ -29,6 +29,18 @@ message ProjectCreated {
     owner: Address;
 }
 
+message PauseProject {
+    projectId: Int;
+}
+
+message ResumeProject {
+    projectId: Int;
+}
+
+message FinalizeProject {
+    projectId: Int;
+}
+
 contract LaunchFactory {
     owner: Address;
     admin: Address;
@@ -84,6 +96,45 @@ contract LaunchFactory {
             sale: sale,
             owner: msg.projectOwner,
         }.toCell());
+    }
+
+    receive(msg: PauseProject) {
+        require(sender() == self.owner || sender() == self.admin, "unauthorized");
+        let sale = self.projects.get(msg.projectId);
+        require(sale != null, "missing");
+
+        send(SendParameters {
+            to: sale!!,
+            value: ton("0.05"),
+            mode: SendIgnoreErrors,
+            body: Pause {}.toCell(),
+        });
+    }
+
+    receive(msg: ResumeProject) {
+        require(sender() == self.owner || sender() == self.admin, "unauthorized");
+        let sale = self.projects.get(msg.projectId);
+        require(sale != null, "missing");
+
+        send(SendParameters {
+            to: sale!!,
+            value: ton("0.05"),
+            mode: SendIgnoreErrors,
+            body: Resume {}.toCell(),
+        });
+    }
+
+    receive(msg: FinalizeProject) {
+        require(sender() == self.owner || sender() == self.admin, "unauthorized");
+        let sale = self.projects.get(msg.projectId);
+        require(sale != null, "missing");
+
+        send(SendParameters {
+            to: sale!!,
+            value: ton("0.05"),
+            mode: SendIgnoreErrors,
+            body: Finalize {}.toCell(),
+        });
     }
 
     get fun projectAddress(id: Int): Address {
