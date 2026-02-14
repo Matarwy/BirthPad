@@ -11,13 +11,13 @@ interface LaunchListPageProps {
 }
 
 export const LaunchListPage = ({ projects, sales, loading, onOpen, onRefresh }: LaunchListPageProps) => {
-  if (loading) return <p>Loading launches...</p>;
+  if (loading) return <p className="empty-state">Loading launches...</p>;
 
   return (
     <section className="panel-stack">
       <div className="section-head">
-        <h2>Launches</h2>
-        <button onClick={onRefresh}>Refresh</button>
+        <h2>Trending Launches</h2>
+        <button className="ghost-button" onClick={onRefresh}>Refresh</button>
       </div>
       {projects.map((project) => {
         const sale = sales.find((item) => item.projectId === project.id);
@@ -25,24 +25,24 @@ export const LaunchListPage = ({ projects, sales, loading, onOpen, onRefresh }: 
         const progress = (raised / Math.max(1, Number(project.hardCap))) * 100;
 
         return (
-          <article className="card" key={project.id}>
+          <article className="card launch-card" key={project.id}>
             <div className="section-head">
               <div>
                 <h3>{project.name}</h3>
                 <p>{project.description}</p>
               </div>
-              <button onClick={() => onOpen(project.id)}>View</button>
+              <button className="primary-button" onClick={() => onOpen(project.id)}>View</button>
             </div>
             <ProgressBar value={progress} label="Sale progress" />
             {sale ? (
-              <p>
+              <p className="countdown-line">
                 Ends in <CountdownTimer targetIso={sale.endsAt} />
               </p>
             ) : null}
           </article>
         );
       })}
-      {!projects.length ? <p>No launches yet.</p> : null}
+      {!projects.length ? <p className="empty-state">No launches yet.</p> : null}
     </section>
   );
 };

@@ -28,7 +28,7 @@ export const PortfolioPage = ({ wallet, txs, projects }: PortfolioPageProps) => 
             );
           })}
         </ul>
-        {!myTxs.length ? <p>No transactions yet.</p> : null}
+        {!myTxs.length ? <p className="empty-state">No transactions yet.</p> : null}
       </article>
     </section>
   );

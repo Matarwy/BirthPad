@@ -18,19 +18,19 @@ export const LaunchDetailPage = ({ detail, wallet, transactionStatus, onBuy }: L
 
   const progress = useMemo(() => detail?.progress?.progress ?? 0, [detail?.progress?.progress]);
 
-  if (!detail) return <p>Select a launch to view details.</p>;
+  if (!detail) return <p className="empty-state">Select a launch to view details.</p>;
 
   const buyDisabled = !wallet || !amount || Number(amount) <= 0;
 
   return (
     <section className="panel-stack">
-      <article className="card">
+      <article className="card launch-card">
         <h2>{detail.project.name}</h2>
         <p>{detail.project.description}</p>
         <SaleMetrics project={detail.project} sale={detail.sale} />
         <ProgressBar value={progress} label="Funding progress" />
         {detail.sale ? (
-          <p>
+          <p className="countdown-line">
             Time left: <CountdownTimer targetIso={detail.sale.endsAt} />
           </p>
         ) : null}
@@ -41,6 +41,7 @@ export const LaunchDetailPage = ({ detail, wallet, transactionStatus, onBuy }: L
         <label htmlFor="buy-amount">Amount (TON)</label>
         <input id="buy-amount" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="10" />
         <button
+          className="primary-button"
           disabled={buyDisabled}
           onClick={async () => {
             setError(null);
@@ -61,8 +62,9 @@ export const LaunchDetailPage = ({ detail, wallet, transactionStatus, onBuy }: L
               Buy with <strong>{amount} TON</strong> from <code>{wallet?.address ?? 'No wallet'}</code>?
             </p>
             <div className="modal-actions">
-              <button onClick={() => setConfirming(false)}>Cancel</button>
+              <button className="ghost-button" onClick={() => setConfirming(false)}>Cancel</button>
               <button
+                className="primary-button"
                 disabled={buyDisabled}
                 onClick={async () => {
                   try {
