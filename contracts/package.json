@@ -1,0 +1,16 @@
+{
+  "name": "@birthpad/contracts",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "pnpm run build -- --watch",
+    "build": "tact --config tact.config.json",
+    "lint": "echo 'No lint configured for contracts yet'",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@tact-lang/compiler": "^1.4.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "projects": [
+    {
+      "name": "birthpad_sale",
+      "path": "contracts/SalePool.tact",
+      "output": "build"
+    }
+  ]
+}
