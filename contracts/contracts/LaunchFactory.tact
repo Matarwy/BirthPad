@@ -2,6 +2,7 @@ import "./ProjectSale.tact";
 
 message DeployFactory {
     owner: Address;
+    admin: Address;
 }
 
 message CreateProject {
@@ -15,6 +16,11 @@ message CreateProject {
     liquidityBps: Int;
     treasuryBps: Int;
     tokenPerNano: Int;
+    teamVestingEnabled: Bool;
+    vestingCliffSeconds: Int;
+    vestingDurationSeconds: Int;
+    liquidityLockEnabled: Bool;
+    liquidityLockUntil: Int;
 }
 
 message ProjectCreated {
@@ -25,20 +31,23 @@ message ProjectCreated {
 
 contract LaunchFactory {
     owner: Address;
+    admin: Address;
     nextProjectId: Int;
     projects: map<Int, Address>;
 
     init(data: DeployFactory) {
         self.owner = data.owner;
+        self.admin = data.admin;
         self.nextProjectId = 1;
     }
 
     receive(msg: CreateProject) {
-        require(sender() == self.owner, "unauthorized");
+        require(sender() == self.owner || sender() == self.admin, "unauthorized");
 
         let init = initOf ProjectSale(DeployProjectSale {
             factory: myAddress(),
             owner: msg.projectOwner,
+            admin: self.admin,
             treasury: msg.treasury,
             tokenWallet: msg.tokenWallet,
             softCap: msg.softCap,
@@ -48,6 +57,11 @@ contract LaunchFactory {
             liquidityBps: msg.liquidityBps,
             treasuryBps: msg.treasuryBps,
             tokenPerNano: msg.tokenPerNano,
+            teamVestingEnabled: msg.teamVestingEnabled,
+            vestingCliffSeconds: msg.vestingCliffSeconds,
+            vestingDurationSeconds: msg.vestingDurationSeconds,
+            liquidityLockEnabled: msg.liquidityLockEnabled,
+            liquidityLockUntil: msg.liquidityLockUntil,
         });
 
         let sale = contractAddress(init);
@@ -56,7 +70,7 @@ contract LaunchFactory {
             to: sale,
             value: ton("0.2"),
             mode: SendIgnoreErrors,
-            body: StartSale {},
+            body: StartSale {}.toCell(),
             code: init.code,
             data: init.data,
         });

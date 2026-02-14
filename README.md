@@ -14,6 +14,7 @@ BirthPad is organized as a PNPM workspace monorepo with three core domains:
 │   ├── api/
 │   └── miniapp/
 ├── contracts/
+├── config/environments/
 ├── package.json
 ├── pnpm-workspace.yaml
 └── tsconfig.base.json
@@ -34,6 +35,24 @@ pnpm build   # build all workspaces
 pnpm lint    # lint all workspaces
 pnpm test    # run tests in all workspaces
 ```
+
+## Deployment environments
+
+BirthPad supports three deployment environments with separate configs:
+
+- `config/environments/devnet.json`
+- `config/environments/testnet.json`
+- `config/environments/mainnet.json`
+
+Runtime secrets are managed via environment variables; use template files:
+
+- `.env.devnet.example`
+- `.env.testnet.example`
+- `.env.mainnet.example`
+
+## Security
+
+See `SECURITY.md` for controls, reporting process, and the incident-response checklist.
 
 ## Architecture
 

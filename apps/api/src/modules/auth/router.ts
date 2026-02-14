@@ -16,5 +16,6 @@ authRouter.post('/login', (req, res) => {
   return res.json({
     token: 'dev-token',
     user: { id: 'tg-user', role: 'founder' },
+    deploymentEnv: process.env.DEPLOY_ENV ?? 'devnet',
   });
 });

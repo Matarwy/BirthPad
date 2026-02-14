@@ -1,0 +1,12 @@
+{
+  "name": "devnet",
+  "apiBaseUrl": "http://localhost:3000",
+  "tonNetwork": "devnet",
+  "contracts": {
+    "launchFactory": "EQ_DEV_FACTORY"
+  },
+  "features": {
+    "strictRateLimit": false,
+    "auditLogging": true
+  }
+}

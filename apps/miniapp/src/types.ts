@@ -5,6 +5,18 @@ export interface TelegramUser {
   username?: string;
 }
 
+export interface TeamVesting {
+  enabled: boolean;
+  cliffSeconds: number;
+  durationSeconds: number;
+  unlockStartAt?: string;
+}
+
+export interface LiquidityLock {
+  enabled: boolean;
+  lockUntil?: string;
+}
+
 export interface Project {
   id: string;
   ownerId: string;
@@ -29,6 +41,8 @@ export interface Sale {
   startsAt: string;
   endsAt: string;
   finalizedAt?: string;
+  teamVesting: TeamVesting;
+  liquidityLock: LiquidityLock;
   createdAt: string;
   updatedAt: string;
 }

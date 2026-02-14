@@ -1,0 +1,12 @@
+{
+  "name": "testnet",
+  "apiBaseUrl": "https://api-testnet.birthpad.example",
+  "tonNetwork": "testnet",
+  "contracts": {
+    "launchFactory": "EQ_TEST_FACTORY"
+  },
+  "features": {
+    "strictRateLimit": true,
+    "auditLogging": true
+  }
+}

@@ -6,9 +6,21 @@ export type SaleState = 'upcoming' | 'active' | 'finalized' | 'refunded';
 export interface User {
   id: string;
   walletAddress: string;
-  role: 'founder' | 'investor';
+  role: 'founder' | 'investor' | 'admin';
   createdAt: string;
   updatedAt: string;
+}
+
+export interface TeamVesting {
+  enabled: boolean;
+  cliffSeconds: number;
+  durationSeconds: number;
+  unlockStartAt?: string;
+}
+
+export interface LiquidityLock {
+  enabled: boolean;
+  lockUntil?: string;
 }
 
 export interface Project {
@@ -34,6 +46,8 @@ export interface Sale {
   startsAt: string;
   endsAt: string;
   finalizedAt?: string;
+  teamVesting: TeamVesting;
+  liquidityLock: LiquidityLock;
   createdAt: string;
   updatedAt: string;
 }
@@ -80,7 +94,12 @@ class Store {
   getOrCreateUser(walletAddress: string, role: User['role'] = 'investor'): User {
     const existingId = this.usersByWallet.get(walletAddress);
     if (existingId) {
-      return this.users.get(existingId)!;
+      const existing = this.users.get(existingId)!;
+      if (role === 'admin' && existing.role !== 'admin') {
+        existing.role = 'admin';
+        existing.updatedAt = nowIso();
+      }
+      return existing;
     }
 
     const ts = nowIso();

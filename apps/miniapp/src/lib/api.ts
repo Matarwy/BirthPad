@@ -66,6 +66,16 @@ export const createLaunch = async (
     totalSupply: string;
     startsAt: string;
     endsAt: string;
+    teamVesting: {
+      enabled: boolean;
+      cliffSeconds: number;
+      durationSeconds: number;
+      unlockStartAt?: string;
+    };
+    liquidityLock: {
+      enabled: boolean;
+      lockUntil?: string;
+    };
   },
 ) => {
   const headers = await walletHeaders('create-project', wallet, payload);

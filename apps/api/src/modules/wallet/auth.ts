@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto';
 import type { Request, Response, NextFunction } from 'express';
 import { store } from '../../db/store';
+import type { AppRole } from '../../security/roles';
+import { resolveRoleForWallet } from '../../security/roles';
 
 const walletSecret = process.env.WALLET_AUTH_SECRET ?? 'dev-wallet-secret';
 
@@ -29,17 +31,22 @@ export const verifyWalletAuth = (action: string) => (req: Request, res: Response
   }
 
   store.consumedNonces.add(nonceKey);
-  req.wallet = { walletAddress, nonce };
+  const role = resolveRoleForWallet(walletAddress);
+  req.wallet = { walletAddress, nonce, role };
   return next();
 };
 
+/* eslint-disable @typescript-eslint/no-namespace */
 declare global {
   namespace Express {
     interface Request {
       wallet?: {
         walletAddress: string;
         nonce: string;
+        role: AppRole;
       };
     }
   }
 }
+
+/* eslint-enable @typescript-eslint/no-namespace */
