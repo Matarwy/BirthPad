@@ -3,8 +3,12 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "dev": "pnpm run build -- --watch",
+    "dev": "tact --config tact.config.json --watch",
     "build": "tact --config tact.config.json",
+    "deploy:devnet": "node scripts/deploy-env.mjs --env devnet",
+    "deploy:testnet": "node scripts/deploy-env.mjs --env testnet",
+    "deploy:mainnet": "node scripts/deploy-env.mjs --env mainnet",
+    "register:deployment": "node scripts/register-deployment.mjs",
     "lint": "echo 'No lint configured for contracts yet'",
     "test": "vitest run",
     "typecheck": "echo 'No explicit typecheck for Tact contracts'"

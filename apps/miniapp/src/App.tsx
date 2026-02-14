@@ -3,20 +3,35 @@ import { bindThemeSync, initTelegram } from './lib/telegram';
 import {
   buyLaunch,
   createLaunch,
+  finalizeLaunch,
+  getDeploymentConfig,
+  getDeploymentDrift,
+  getOpsAlerts,
   getProjectDetail,
   getProjects,
   getSales,
   getTransactions,
   loginWithTelegram,
+  pauseLaunch,
+  refundLaunch,
+  resumeLaunch,
+  updateLaunchWhitelist,
 } from './lib/api';
-import { connectWallet, connector, disconnectWallet, loadWalletSession, saveWalletSession } from './lib/wallet';
+import {
+  connectWallet,
+  connector,
+  disconnectWallet,
+  loadWalletSession,
+  saveWalletSession,
+} from './lib/wallet';
 import { LaunchListPage } from './pages/LaunchListPage';
 import { LaunchDetailPage } from './pages/LaunchDetailPage';
 import { CreateLaunchPage } from './pages/CreateLaunchPage';
 import { PortfolioPage } from './pages/PortfolioPage';
+import { OpsPage } from './pages/OpsPage';
 import type { Project, ProjectDetailResponse, Sale, Tx, WalletSession } from './types';
 
-type Route = 'launches' | 'launch-detail' | 'create' | 'portfolio';
+type Route = 'launches' | 'launch-detail' | 'create' | 'portfolio' | 'ops';
 
 const App = () => {
   const telegram = useMemo(() => initTelegram(), []);
@@ -30,13 +45,55 @@ const App = () => {
   const [wallet, setWallet] = useState<WalletSession | null>(() => loadWalletSession());
   const [loading, setLoading] = useState(true);
   const [txStatus, setTxStatus] = useState('');
+  const [createBlockedReason, setCreateBlockedReason] = useState<string | null>(null);
+  const [createWarningMessage, setCreateWarningMessage] = useState<string | null>(null);
 
   const refresh = async () => {
     setLoading(true);
-    const [projectData, saleData, txData] = await Promise.all([getProjects('trending'), getSales(), getTransactions()]);
+    const [projectData, saleData, txData] = await Promise.all([
+      getProjects('trending'),
+      getSales(),
+      getTransactions(),
+    ]);
     setProjects(projectData);
     setSales(saleData);
     setTxs(txData);
+    const [configResult, driftResult, alertsResult] = await Promise.allSettled([
+      getDeploymentConfig(),
+      getDeploymentDrift(),
+      getOpsAlerts(),
+    ]);
+
+    const config = configResult.status === 'fulfilled' ? configResult.value : null;
+    const drift = driftResult.status === 'fulfilled' ? driftResult.value : null;
+    const alerts = alertsResult.status === 'fulfilled' ? alertsResult.value : null;
+
+    if (!config) {
+      setCreateBlockedReason('Create flow temporarily blocked: deployment config unavailable.');
+      setCreateWarningMessage(null);
+    } else if (!config.health.hasLaunchFactory) {
+      setCreateBlockedReason(
+        'Create flow blocked: LaunchFactory contract is not configured for this environment.',
+      );
+      setCreateWarningMessage(null);
+    } else if (drift?.severity === 'critical') {
+      setCreateBlockedReason(
+        'Create flow blocked: critical deployment drift detected. Resolve Ops alerts first.',
+      );
+      setCreateWarningMessage(null);
+    } else if (alerts?.severity === 'critical') {
+      setCreateBlockedReason(
+        'Create flow blocked: critical ops alerts detected. Resolve incidents before launching.',
+      );
+      setCreateWarningMessage(null);
+    } else {
+      setCreateBlockedReason(null);
+      setCreateWarningMessage(
+        !config.health.hasProjectSaleTemplate
+          ? 'Warning: ProjectSale template contract is missing. Launch creation can proceed via LaunchFactory, but verify deployment setup in Ops.'
+          : null,
+      );
+    }
     setLoading(false);
   };
 
@@ -53,9 +110,13 @@ const App = () => {
   useEffect(() => {
     const interval = window.setInterval(() => {
       if (selectedLaunchId) {
-        getProjectDetail(selectedLaunchId).then(setDetail).catch(() => undefined);
+        getProjectDetail(selectedLaunchId)
+          .then(setDetail)
+          .catch(() => undefined);
       }
-      getTransactions().then(setTxs).catch(() => undefined);
+      getTransactions()
+        .then(setTxs)
+        .catch(() => undefined);
     }, 4000);
     return () => window.clearInterval(interval);
   }, [selectedLaunchId]);
@@ -100,23 +161,61 @@ const App = () => {
         <div className="row">
           {wallet ? (
             <>
-              <span className="pill connected">{wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}</span>
-              <button className="ghost-button" onClick={() => disconnectWallet().then(() => setWallet(null))}>Disconnect</button>
+              <span className="pill connected">
+                {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
+              </span>
+              <button
+                className="ghost-button"
+                onClick={() => disconnectWallet().then(() => setWallet(null))}
+              >
+                Disconnect
+              </button>
             </>
           ) : (
-            <button className="primary-button" onClick={connect}>Connect TON Wallet</button>
+            <button className="primary-button" onClick={connect}>
+              Connect TON Wallet
+            </button>
           )}
         </div>
       </header>
 
       <nav className="tabs">
-        <button className={route === 'launches' ? 'tab-active' : ''} onClick={() => setRoute('launches')}>Launches</button>
-        <button className={route === 'create' ? 'tab-active' : ''} onClick={() => setRoute('create')}>Create</button>
-        <button className={route === 'portfolio' ? 'tab-active' : ''} onClick={() => setRoute('portfolio')}>Portfolio</button>
+        <button
+          className={route === 'launches' ? 'tab-active' : ''}
+          onClick={() => setRoute('launches')}
+        >
+          Launches
+        </button>
+        <button
+          className={route === 'create' ? 'tab-active' : ''}
+          onClick={() => setRoute('create')}
+        >
+          Create
+        </button>
+        <button
+          className={route === 'portfolio' ? 'tab-active' : ''}
+          onClick={() => setRoute('portfolio')}
+        >
+          Portfolio
+        </button>
+        <button className={route === 'ops' ? 'tab-active' : ''} onClick={() => setRoute('ops')}>
+          Ops
+        </button>
       </nav>
+      {createBlockedReason ? (
+        <div className="alert-strip">
+          <strong>Launch Guardrail Active:</strong> {createBlockedReason}
+        </div>
+      ) : null}
 
       {route === 'launches' ? (
-        <LaunchListPage projects={projects} sales={sales} loading={loading} onOpen={openLaunch} onRefresh={refresh} />
+        <LaunchListPage
+          projects={projects}
+          sales={sales}
+          loading={loading}
+          onOpen={openLaunch}
+          onRefresh={refresh}
+        />
       ) : null}
       {route === 'launch-detail' ? (
         <LaunchDetailPage
@@ -142,10 +241,53 @@ const App = () => {
               }
             }, 2500);
           }}
+          onPause={async () => {
+            if (!wallet || !selectedLaunchId) throw new Error('Connect wallet first');
+            await pauseLaunch(wallet, selectedLaunchId);
+            const data = await getProjectDetail(selectedLaunchId);
+            setDetail(data);
+            await refresh();
+          }}
+          onResume={async () => {
+            if (!wallet || !selectedLaunchId) throw new Error('Connect wallet first');
+            await resumeLaunch(wallet, selectedLaunchId);
+            const data = await getProjectDetail(selectedLaunchId);
+            setDetail(data);
+            await refresh();
+          }}
+          onFinalize={async () => {
+            if (!wallet || !selectedLaunchId) throw new Error('Connect wallet first');
+            await finalizeLaunch(wallet, selectedLaunchId);
+            setTxStatus('Finalization queued');
+            await refresh();
+          }}
+          onRefund={async () => {
+            if (!wallet || !selectedLaunchId) throw new Error('Connect wallet first');
+            await refundLaunch(wallet, selectedLaunchId);
+            setTxStatus('Refund queued');
+            await refresh();
+          }}
+          onWhitelistUpdate={async (addresses) => {
+            if (!wallet || !selectedLaunchId) throw new Error('Connect wallet first');
+            await updateLaunchWhitelist(wallet, selectedLaunchId, addresses);
+            const data = await getProjectDetail(selectedLaunchId);
+            setDetail(data);
+            await refresh();
+          }}
         />
       ) : null}
-      {route === 'create' ? <CreateLaunchPage wallet={wallet} onCreate={(payload) => createLaunch(wallet!, payload).then(refresh)} /> : null}
-      {route === 'portfolio' ? <PortfolioPage wallet={wallet} txs={txs} projects={projects} /> : null}
+      {route === 'create' ? (
+        <CreateLaunchPage
+          wallet={wallet}
+          createBlockedReason={createBlockedReason}
+          createWarningMessage={createWarningMessage}
+          onCreate={(payload) => createLaunch(wallet!, payload).then(refresh)}
+        />
+      ) : null}
+      {route === 'portfolio' ? (
+        <PortfolioPage wallet={wallet} txs={txs} projects={projects} onDataChanged={refresh} />
+      ) : null}
+      {route === 'ops' ? <OpsPage txs={txs} wallet={wallet} /> : null}
     </main>
   );
 };
