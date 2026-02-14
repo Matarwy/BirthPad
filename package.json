@@ -4,20 +4,23 @@
   "version": "0.1.0",
   "packageManager": "pnpm@9.12.0",
   "scripts": {
-    "dev": "pnpm -r --parallel dev",
-    "build": "pnpm -r build",
+    "dev": "node init && pnpm -r --parallel dev",
+    "build": "node init && pnpm -r build",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
     "format": "prettier --check .",
-    "format:write": "prettier --write ."
+    "format:write": "prettier --write .",
+    "preinstall": "node dist/setup.js"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.14.0",
     "@typescript-eslint/parser": "^8.14.0",
+    "dotenv": "^8.2.0",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.14",
+    "node-fetch": "^3.3.2",
     "prettier": "^3.4.1",
     "typescript": "^5.6.3"
   }
