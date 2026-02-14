@@ -1,10 +1,136 @@
 openapi: 3.0.3
 info:
   title: BirthPad API
-  version: 0.1.0
+  version: 0.2.0
 servers:
   - url: http://localhost:3000
+
 paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service status
+
+  /auth/login:
+    post:
+      summary: Telegram auth login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [telegramInitData]
+              properties:
+                telegramInitData:
+                  type: string
+      responses:
+        '200':
+          description: Login accepted
+        '400':
+          description: Invalid payload
+
+  /config/deployment:
+    get:
+      summary: Get resolved deployment environment and contract addresses
+      responses:
+        '200':
+          description: Deployment config with contract addresses
+
+  /config/drift:
+    get:
+      summary: Compare per-env contract config vs shared registry
+      responses:
+        '200':
+          description: Drift diagnostics and severity
+
+  /config/alerts:
+    get:
+      summary: Get operational alerts and incident timeline
+      responses:
+        '200':
+          description: Alert feed and recent incidents
+
+  /config/alerts/history:
+    get:
+      summary: Get persisted alert action history
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Alert action history items
+
+  /config/alerts/{id}/ack:
+    post:
+      summary: Acknowledge an alert
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/XWalletAddress'
+        - $ref: '#/components/parameters/XWalletSignature'
+        - $ref: '#/components/parameters/XWalletNonce'
+      responses:
+        '200':
+          description: Alert acknowledged
+
+  /config/alerts/{id}/mute:
+    post:
+      summary: Mute an alert for a duration in minutes
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/XWalletAddress'
+        - $ref: '#/components/parameters/XWalletSignature'
+        - $ref: '#/components/parameters/XWalletNonce'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                minutes:
+                  type: integer
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Alert muted
+
+  /config/alerts/{id}/unmute:
+    post:
+      summary: Remove alert mute state
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/XWalletAddress'
+        - $ref: '#/components/parameters/XWalletSignature'
+        - $ref: '#/components/parameters/XWalletNonce'
+      responses:
+        '200':
+          description: Alert unmuted
+
+  /config/anomalies:
+    get:
+      summary: Get event-rate trends and anomaly signals
+      responses:
+        '200':
+          description: Time-bucket trends and detected anomalies
+
   /projects:
     get:
       summary: List projects
@@ -18,47 +144,278 @@ paths:
         '200':
           description: Project list
     post:
-      summary: Create project
+      summary: Create project + sale
       parameters:
-        - in: header
-          name: x-wallet-address
-          required: true
-          schema: { type: string }
-        - in: header
-          name: x-wallet-signature
-          required: true
-          schema: { type: string }
-        - in: header
-          name: x-wallet-nonce
-          required: true
-          schema: { type: string }
+        - $ref: '#/components/parameters/XWalletAddress'
+        - $ref: '#/components/parameters/XWalletSignature'
+        - $ref: '#/components/parameters/XWalletNonce'
       requestBody:
         required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - description
+                - hardCap
+                - softCap
+                - tokenSymbol
+                - tokenPrice
+                - totalSupply
+                - startsAt
+                - endsAt
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                hardCap:
+                  type: string
+                softCap:
+                  type: string
+                tokenSymbol:
+                  type: string
+                tokenPrice:
+                  type: string
+                totalSupply:
+                  type: string
+                startsAt:
+                  type: string
+                  format: date-time
+                endsAt:
+                  type: string
+                  format: date-time
+                teamVesting:
+                  type: object
+                liquidityLock:
+                  type: object
+                buyLimits:
+                  type: object
+                whitelist:
+                  type: object
       responses:
-        '201': { description: Created }
+        '201':
+          description: Project created
+        '400':
+          description: Validation failed
+        '401':
+          description: Missing or invalid wallet auth
+
   /projects/{id}:
     get:
-      summary: Get project details
+      summary: Get project details and risk
       parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
+        - $ref: '#/components/parameters/ProjectId'
       responses:
-        '200': { description: Project details }
-        '404': { description: Not found }
+        '200':
+          description: Project details
+        '404':
+          description: Project not found
+
   /projects/{id}/buy:
     post:
       summary: Buy into project sale
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/XWalletAddress'
+        - $ref: '#/components/parameters/XWalletSignature'
+        - $ref: '#/components/parameters/XWalletNonce'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount:
+                  type: string
       responses:
-        '202': { description: Buy transaction queued }
+        '202':
+          description: Buy transaction queued
+        '400':
+          description: Invalid amount or limits exceeded
+        '403':
+          description: Not whitelisted
+        '409':
+          description: Sale state/time constraints failed
+
+  /projects/{id}/claimable:
+    get:
+      summary: Get claimable vesting stats for current wallet
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/XWalletAddress'
+        - $ref: '#/components/parameters/XWalletSignature'
+        - $ref: '#/components/parameters/XWalletNonce'
+      responses:
+        '200':
+          description: Claimable stats
+        '404':
+          description: Project not found
+
+  /projects/{id}/claim:
+    post:
+      summary: Claim unlocked allocation
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/XWalletAddress'
+        - $ref: '#/components/parameters/XWalletSignature'
+        - $ref: '#/components/parameters/XWalletNonce'
+      responses:
+        '200':
+          description: Claim successful
+        '409':
+          description: Not finalized or no claimable amount
+
+  /projects/{id}/whitelist:
+    put:
+      summary: Replace whitelist addresses
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/XWalletAddress'
+        - $ref: '#/components/parameters/XWalletSignature'
+        - $ref: '#/components/parameters/XWalletNonce'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [addresses]
+              properties:
+                addresses:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Whitelist updated
+        '403':
+          description: Not owner/admin
+        '409':
+          description: Sale no longer editable
+
+  /projects/{id}/risk:
+    get:
+      summary: Get project risk model
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: Risk signals
+        '404':
+          description: Project not found
+
+  /projects/{id}/pause:
+    post:
+      summary: Pause active sale
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/XWalletAddress'
+        - $ref: '#/components/parameters/XWalletSignature'
+        - $ref: '#/components/parameters/XWalletNonce'
+      responses:
+        '200':
+          description: Sale paused
+        '403':
+          description: Not owner/admin
+        '409':
+          description: Invalid sale state
+
+  /projects/{id}/resume:
+    post:
+      summary: Resume paused sale
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/XWalletAddress'
+        - $ref: '#/components/parameters/XWalletSignature'
+        - $ref: '#/components/parameters/XWalletNonce'
+      responses:
+        '200':
+          description: Sale resumed
+        '403':
+          description: Not owner/admin
+        '409':
+          description: Invalid sale state
+
   /projects/{id}/finalize:
     post:
-      summary: Finalize project sale
+      summary: Finalize sale
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/XWalletAddress'
+        - $ref: '#/components/parameters/XWalletSignature'
+        - $ref: '#/components/parameters/XWalletNonce'
       responses:
-        '200': { description: Finalization queued }
+        '200':
+          description: Finalization queued
+        '403':
+          description: Not owner/admin
+        '409':
+          description: Invalid sale state/conditions
+
   /projects/{id}/refund:
     post:
-      summary: Refund contribution
+      summary: Refund sale contribution
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/XWalletAddress'
+        - $ref: '#/components/parameters/XWalletSignature'
+        - $ref: '#/components/parameters/XWalletNonce'
       responses:
-        '200': { description: Refund queued }
+        '200':
+          description: Refund queued
+        '403':
+          description: Not owner/admin
+        '409':
+          description: Invalid sale state/conditions
+
+  /sales:
+    get:
+      summary: List sales
+      responses:
+        '200':
+          description: Sales list
+
+  /transactions:
+    get:
+      summary: List indexed transactions
+      responses:
+        '200':
+          description: Transactions list
+
+  /openapi/yaml:
+    get:
+      summary: Read OpenAPI spec as YAML
+      responses:
+        '200':
+          description: YAML document
+
+components:
+  parameters:
+    ProjectId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+    XWalletAddress:
+      in: header
+      name: x-wallet-address
+      required: true
+      schema:
+        type: string
+    XWalletSignature:
+      in: header
+      name: x-wallet-signature
+      required: true
+      schema:
+        type: string
+    XWalletNonce:
+      in: header
+      name: x-wallet-nonce
+      required: true
+      schema:
+        type: string

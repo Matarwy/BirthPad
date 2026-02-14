@@ -9,3 +9,4 @@ coverage
 .env.*
 !.env.*.example
 audit/
+data/ops-alerts-state.json

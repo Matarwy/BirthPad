@@ -43,6 +43,7 @@ BirthPad supports three deployment environments with separate configs:
 - `config/environments/devnet.json`
 - `config/environments/testnet.json`
 - `config/environments/mainnet.json`
+- `config/contracts/addresses.json` (deployed contract address registry)
 
 Runtime secrets are managed via environment variables; use template files:
 
@@ -58,3 +59,8 @@ See `SECURITY.md` for controls, reporting process, and the incident-response che
 
 - Frontend ↔ Backend: `docs/architecture/app-api-diagram.md` (create and maintain with product docs)
 - Backend ↔ Contracts: `docs/architecture/api-contracts-diagram.md` (create and maintain with protocol docs)
+
+## Product Roadmap
+
+- Delivery plan and 50-feature backlog: `docs/roadmap/launchpad-roadmap.md`
+- MVP sprint tracker: `docs/roadmap/mvp-checklist.md`

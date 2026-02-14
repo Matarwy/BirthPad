@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 export type ProjectStatus = 'draft' | 'active' | 'finalized' | 'refunded';
-export type SaleState = 'upcoming' | 'active' | 'finalized' | 'refunded';
+export type SaleState = 'upcoming' | 'active' | 'paused' | 'finalized' | 'refunded';
 
 export interface User {
   id: string;
@@ -48,6 +48,9 @@ export interface Sale {
   finalizedAt?: string;
   teamVesting: TeamVesting;
   liquidityLock: LiquidityLock;
+  minBuyAmount: string;
+  maxBuyAmount: string;
+  whitelistAddresses: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -58,6 +61,7 @@ export interface Contribution {
   saleId: string;
   userId: string;
   amount: string;
+  claimedAmount: string;
   status: 'pending' | 'confirmed' | 'refunded';
   txHash?: string;
   createdAt: string;
@@ -146,12 +150,15 @@ class Store {
 
 export const store = new Store();
 
-export const createContribution = (input: Omit<Contribution, 'id' | 'createdAt' | 'updatedAt'>) => {
+export const createContribution = (
+  input: Omit<Contribution, 'id' | 'createdAt' | 'updatedAt' | 'claimedAmount'>,
+) => {
   const ts = nowIso();
   const contribution: Contribution = {
     id: `c_${randomUUID()}`,
     createdAt: ts,
     updatedAt: ts,
+    claimedAmount: '0',
     ...input,
   };
   store.contributions.set(contribution.id, contribution);
