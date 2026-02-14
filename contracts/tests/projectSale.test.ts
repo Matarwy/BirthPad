@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 enum SaleState {
   Draft,
   Live,
+  Paused,
   Successful,
   Failed,
   Finalized,
@@ -12,6 +13,7 @@ class ProjectSaleModel {
   public state = SaleState.Draft;
   public totalRaised = 0n;
   public readonly contributions = new Map<string, bigint>();
+  public readonly claimedAmounts = new Map<string, bigint>();
 
   constructor(
     private readonly owner: string,
@@ -50,11 +52,23 @@ class ProjectSaleModel {
     }
   }
 
+  pause(caller: string) {
+    if (caller !== this.owner && caller !== this.admin) throw new Error('unauthorized');
+    if (this.state !== SaleState.Live) throw new Error('not live');
+    this.state = SaleState.Paused;
+  }
+
+  resume(caller: string) {
+    if (caller !== this.owner && caller !== this.admin) throw new Error('unauthorized');
+    if (this.state !== SaleState.Paused) throw new Error('not paused');
+    this.state = SaleState.Live;
+  }
+
   finalize(caller: string) {
     if (caller !== this.admin) throw new Error('unauthorized');
     if (this.state === SaleState.Finalized) throw new Error('already finalized');
 
-    if (this.state === SaleState.Live) {
+    if (this.state === SaleState.Live || this.state === SaleState.Paused) {
       this.state = this.totalRaised >= this.softCap ? SaleState.Successful : SaleState.Failed;
     }
 
@@ -72,6 +86,25 @@ class ProjectSaleModel {
     };
   }
 
+  claim(caller: string, elapsedAfterFinalizeSeconds: bigint) {
+    if (this.state !== SaleState.Finalized) throw new Error('not finalized');
+    const contribution = this.contributions.get(caller) ?? 0n;
+    if (contribution <= 0n) throw new Error('no contribution');
+
+    let vested = contribution;
+    if (this.teamVestingEnabled) {
+      if (elapsedAfterFinalizeSeconds <= 0n) {
+        vested = 0n;
+      }
+    }
+
+    const claimed = this.claimedAmounts.get(caller) ?? 0n;
+    const claimable = vested - claimed;
+    if (claimable <= 0n) throw new Error('nothing to claim');
+    this.claimedAmounts.set(caller, claimed + claimable);
+    return claimable;
+  }
+
   refund(caller: string) {
     if (this.state !== SaleState.Failed) throw new Error('not failed');
     const amount = this.contributions.get(caller) ?? 0n;
@@ -82,25 +115,85 @@ class ProjectSaleModel {
 }
 
 describe('ProjectSale boundary behavior', () => {
+  it('supports pause and resume controls', () => {
+    const sale = new ProjectSaleModel(
+      'owner',
+      'admin',
+      50n,
+      100n,
+      10n,
+      90n,
+      6000n,
+      3000n,
+      0n,
+      false,
+    );
+    sale.start('owner');
+    sale.pause('owner');
+    expect(sale.state).toBe(SaleState.Paused);
+    expect(() => sale.buy('alice', 10n)).toThrow(/not live/);
+    sale.resume('admin');
+    sale.buy('alice', 10n);
+    expect(sale.totalRaised).toBe(10n);
+  });
+
   it('rejects cap overflow', () => {
-    const sale = new ProjectSaleModel('owner', 'admin', 50n, 100n, 10n, 90n, 6000n, 3000n, 0n, false);
+    const sale = new ProjectSaleModel(
+      'owner',
+      'admin',
+      50n,
+      100n,
+      10n,
+      90n,
+      6000n,
+      3000n,
+      0n,
+      false,
+    );
     sale.start('owner');
     sale.buy('alice', 80n);
     expect(() => sale.buy('bob', 21n)).toThrow(/hard cap exceeded/);
   });
 
   it('prevents double finalize', () => {
-    const sale = new ProjectSaleModel('owner', 'admin', 40n, 100n, 10n, 100n, 5000n, 4000n, 1800n, true);
+    const sale = new ProjectSaleModel(
+      'owner',
+      'admin',
+      40n,
+      100n,
+      10n,
+      100n,
+      5000n,
+      4000n,
+      1800n,
+      true,
+    );
     sale.start('owner');
     sale.buy('alice', 40n);
 
     const allocation = sale.finalize('admin');
-    expect(allocation).toEqual({ liquidity: 20n, treasury: 16n, liquidityLockUntil: 1800n, teamVestingEnabled: true });
+    expect(allocation).toEqual({
+      liquidity: 20n,
+      treasury: 16n,
+      liquidityLockUntil: 1800n,
+      teamVestingEnabled: true,
+    });
     expect(() => sale.finalize('admin')).toThrow(/already finalized/);
   });
 
   it('blocks unauthorized actions', () => {
-    const sale = new ProjectSaleModel('owner', 'admin', 50n, 100n, 10n, 100n, 5000n, 4000n, 0n, false);
+    const sale = new ProjectSaleModel(
+      'owner',
+      'admin',
+      50n,
+      100n,
+      10n,
+      100n,
+      5000n,
+      4000n,
+      0n,
+      false,
+    );
     expect(() => sale.start('attacker')).toThrow(/unauthorized/);
 
     sale.start('owner');
@@ -109,7 +202,18 @@ describe('ProjectSale boundary behavior', () => {
   });
 
   it('supports refunds when sale fails', () => {
-    const sale = new ProjectSaleModel('owner', 'admin', 60n, 100n, 10n, 100n, 5000n, 4000n, 0n, false);
+    const sale = new ProjectSaleModel(
+      'owner',
+      'admin',
+      60n,
+      100n,
+      10n,
+      100n,
+      5000n,
+      4000n,
+      0n,
+      false,
+    );
     sale.start('owner');
     sale.buy('alice', 20n);
 
@@ -118,5 +222,26 @@ describe('ProjectSale boundary behavior', () => {
 
     expect(sale.refund('alice')).toBe(20n);
     expect(() => sale.refund('alice')).toThrow(/no contribution/);
+  });
+
+  it('supports claim after finalize', () => {
+    const sale = new ProjectSaleModel(
+      'owner',
+      'admin',
+      40n,
+      100n,
+      10n,
+      100n,
+      5000n,
+      4000n,
+      0n,
+      false,
+    );
+    sale.start('owner');
+    sale.buy('alice', 40n);
+    sale.finalize('admin');
+
+    expect(sale.claim('alice', 10n)).toBe(40n);
+    expect(() => sale.claim('alice', 10n)).toThrow(/nothing to claim/);
   });
 });

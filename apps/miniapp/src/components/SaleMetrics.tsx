@@ -27,11 +27,27 @@ export const SaleMetrics = ({ project, sale }: SaleMetricsProps) => (
     </div>
     <div>
       <strong>Team vesting</strong>
-      <p>{sale?.teamVesting.enabled ? `${sale.teamVesting.durationSeconds}s (${sale.teamVesting.cliffSeconds}s cliff)` : 'Disabled'}</p>
+      <p>
+        {sale?.teamVesting.enabled
+          ? `${sale.teamVesting.durationSeconds}s (${sale.teamVesting.cliffSeconds}s cliff)`
+          : 'Disabled'}
+      </p>
     </div>
     <div>
       <strong>Liquidity lock</strong>
-      <p>{sale?.liquidityLock.enabled ? `Locked until ${formatLockDate(sale.liquidityLock.lockUntil)}` : 'Not locked'}</p>
+      <p>
+        {sale?.liquidityLock.enabled
+          ? `Locked until ${formatLockDate(sale.liquidityLock.lockUntil)}`
+          : 'Not locked'}
+      </p>
+    </div>
+    <div>
+      <strong>Buy limits</strong>
+      <p>{sale ? `${sale.minBuyAmount} - ${sale.maxBuyAmount} TON` : 'N/A'}</p>
+    </div>
+    <div>
+      <strong>Whitelist</strong>
+      <p>{sale ? `${sale.whitelistAddresses.length} wallets` : 'N/A'}</p>
     </div>
   </div>
 );

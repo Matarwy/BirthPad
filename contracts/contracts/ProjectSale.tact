@@ -20,8 +20,11 @@ message DeployProjectSale {
 
 message StartSale {}
 message Buy {}
+message Pause {}
+message Resume {}
 message Finalize {}
 message Refund {}
+message Claim {}
 
 message Bought {
     buyer: Address;
@@ -44,6 +47,12 @@ message Finalized {
 message Refunded {
     buyer: Address;
     amount: Int as coins;
+}
+
+message Claimed {
+    buyer: Address;
+    amount: Int as coins;
+    totalClaimed: Int as coins;
 }
 
 contract ProjectSale {
@@ -72,12 +81,14 @@ contract ProjectSale {
     status: Int;
 
     contributions: map<Address, Int>;
+    claimedAmounts: map<Address, Int>;
 
     const DRAFT: Int = 0;
     const LIVE: Int = 1;
-    const SUCCESSFUL: Int = 2;
-    const FAILED: Int = 3;
-    const FINALIZED: Int = 4;
+    const PAUSED: Int = 2;
+    const SUCCESSFUL: Int = 3;
+    const FAILED: Int = 4;
+    const FINALIZED: Int = 5;
 
     init(data: DeployProjectSale) {
         require(data.hardCap > 0, "hard cap");
@@ -146,11 +157,23 @@ contract ProjectSale {
         }.toCell());
     }
 
+    receive(_: Pause) {
+        require(sender() == self.owner || sender() == self.factory || sender() == self.admin, "unauthorized");
+        require(self.status == self.LIVE, "not live");
+        self.status = self.PAUSED;
+    }
+
+    receive(_: Resume) {
+        require(sender() == self.owner || sender() == self.factory || sender() == self.admin, "unauthorized");
+        require(self.status == self.PAUSED, "not paused");
+        self.status = self.LIVE;
+    }
+
     receive(_: Finalize) {
         require(sender() == self.admin || sender() == self.factory, "unauthorized");
         require(self.status != self.FINALIZED, "already finalized");
 
-        if (self.status == self.LIVE) {
+        if (self.status == self.LIVE || self.status == self.PAUSED) {
             if (self.totalRaised >= self.softCap) {
                 self.status = self.SUCCESSFUL;
             } else {
@@ -197,6 +220,55 @@ contract ProjectSale {
         }.toCell());
     }
 
+    receive(_: Claim) {
+        require(self.status == self.FINALIZED, "not finalized");
+
+        let buyer = sender();
+        let contribution = self.contributions.get(buyer);
+        require(contribution != null && contribution!! > 0, "no contribution");
+
+        let vested = contribution!!;
+        if (self.teamVestingEnabled) {
+            let elapsed = now() - self.finalizedAt - self.vestingCliffSeconds;
+            if (elapsed <= 0) {
+                vested = 0;
+            } else {
+                if (self.vestingDurationSeconds <= 0) {
+                    vested = contribution!!;
+                } else {
+                    if (elapsed >= self.vestingDurationSeconds) {
+                        vested = contribution!!;
+                    } else {
+                        vested = (contribution!! * elapsed) / self.vestingDurationSeconds;
+                    }
+                }
+            }
+        }
+
+        let alreadyClaimed = self.claimedAmounts.get(buyer);
+        let claimed = 0;
+        if (alreadyClaimed != null) {
+            claimed = alreadyClaimed!!;
+        }
+
+        let claimable = vested - claimed;
+        require(claimable > 0, "nothing to claim");
+
+        self.claimedAmounts.set(buyer, claimed + claimable);
+        send(SendParameters {
+            to: buyer,
+            value: claimable,
+            mode: SendIgnoreErrors,
+            body: null,
+        });
+
+        emit(Claimed {
+            buyer: buyer,
+            amount: claimable,
+            totalClaimed: claimed + claimable,
+        }.toCell());
+    }
+
     receive(_: Refund) {
         require(self.status == self.FAILED, "not failed");
 
@@ -232,6 +304,52 @@ contract ProjectSale {
             return 0;
         }
         return amount!!;
+    }
+
+    get fun claimedOf(addr: Address): Int {
+        let amount = self.claimedAmounts.get(addr);
+        if (amount == null) {
+            return 0;
+        }
+        return amount!!;
+    }
+
+    get fun claimableOf(addr: Address): Int {
+        if (self.status != self.FINALIZED) {
+            return 0;
+        }
+
+        let contribution = self.contributions.get(addr);
+        if (contribution == null || contribution!! <= 0) {
+            return 0;
+        }
+
+        let vested = contribution!!;
+        if (self.teamVestingEnabled) {
+            let elapsed = now() - self.finalizedAt - self.vestingCliffSeconds;
+            if (elapsed <= 0) {
+                vested = 0;
+            } else {
+                if (self.vestingDurationSeconds <= 0) {
+                    vested = contribution!!;
+                } else {
+                    if (elapsed >= self.vestingDurationSeconds) {
+                        vested = contribution!!;
+                    } else {
+                        vested = (contribution!! * elapsed) / self.vestingDurationSeconds;
+                    }
+                }
+            }
+        }
+
+        let claimed = self.claimedAmounts.get(addr);
+        if (claimed == null) {
+            return vested;
+        }
+        if (vested <= claimed!!) {
+            return 0;
+        }
+        return vested - claimed!!;
     }
 
     get fun lockInfo(): Int {
