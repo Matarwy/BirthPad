@@ -10,14 +10,22 @@ interface LaunchListPageProps {
   onRefresh: () => void;
 }
 
-export const LaunchListPage = ({ projects, sales, loading, onOpen, onRefresh }: LaunchListPageProps) => {
+export const LaunchListPage = ({
+  projects,
+  sales,
+  loading,
+  onOpen,
+  onRefresh,
+}: LaunchListPageProps) => {
   if (loading) return <p className="empty-state">Loading launches...</p>;
 
   return (
     <section className="panel-stack">
       <div className="section-head">
         <h2>Trending Launches</h2>
-        <button className="ghost-button" onClick={onRefresh}>Refresh</button>
+        <button className="ghost-button" onClick={onRefresh}>
+          Refresh
+        </button>
       </div>
       {projects.map((project) => {
         const sale = sales.find((item) => item.projectId === project.id);
@@ -31,7 +39,12 @@ export const LaunchListPage = ({ projects, sales, loading, onOpen, onRefresh }: 
                 <h3>{project.name}</h3>
                 <p>{project.description}</p>
               </div>
-              <button className="primary-button" onClick={() => onOpen(project.id)}>View</button>
+              <div className="row">
+                {sale ? <span className={`pill state-${sale.state}`}>{sale.state}</span> : null}
+                <button className="primary-button" onClick={() => onOpen(project.id)}>
+                  View
+                </button>
+              </div>
             </div>
             <ProgressBar value={progress} label="Sale progress" />
             {sale ? (

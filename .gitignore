@@ -9,3 +9,8 @@ coverage
 .env.*
 !.env.*.example
 audit/
+data/ops-alerts-state.json
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore

@@ -1,6 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 import { authRouter } from './modules/auth/router';
+import { configRouter } from './modules/config/router';
 import { openapiRouter } from './modules/openapi/router';
 import { projectsRouter } from './modules/projects/router';
 import { salesRouter } from './modules/sales/router';
@@ -15,6 +16,7 @@ app.get('/health', (_, res) => {
 });
 
 app.use('/auth', authRouter);
+app.use('/config', configRouter);
 app.use('/projects', projectsRouter);
 app.use('/sales', salesRouter);
 app.use('/transactions', transactionsRouter);

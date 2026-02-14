@@ -1,0 +1,17 @@
+{
+  "devnet": {
+    "launchFactory": "",
+    "projectSaleTemplate": "",
+    "deployedAt": ""
+  },
+  "testnet": {
+    "launchFactory": "",
+    "projectSaleTemplate": "",
+    "deployedAt": ""
+  },
+  "mainnet": {
+    "launchFactory": "",
+    "projectSaleTemplate": "",
+    "deployedAt": ""
+  }
+}
