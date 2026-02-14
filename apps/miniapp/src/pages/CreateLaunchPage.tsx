@@ -52,7 +52,7 @@ export const CreateLaunchPage = ({ wallet, onCreate }: CreateLaunchPageProps) =>
     <section className="panel-stack">
       <article className="card">
         <h2>Create launch</h2>
-        <p>Founder flow to create a token sale directly from Telegram miniapp.</p>
+        <p className="hero-subtitle">Founder flow to create a token sale directly from Telegram mini app.</p>
         <div className="form-grid">
           {[
             'name',
@@ -123,6 +123,7 @@ export const CreateLaunchPage = ({ wallet, onCreate }: CreateLaunchPageProps) =>
         </label>
 
         <button
+          className="primary-button"
           disabled={!wallet}
           onClick={async () => {
             setStatus('Submitting...');

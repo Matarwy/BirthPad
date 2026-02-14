@@ -90,9 +90,10 @@ const App = () => {
   return (
     <main className={`container ${theme === 'light' ? 'light' : ''}`}>
       <header className="topbar">
-        <div>
+        <div className="hero-copy">
+          <p className="eyebrow">Telegram Mini App · TON Launchpad</p>
           <h1>BirthPad</h1>
-          <p>
+          <p className="hero-subtitle">
             {telegram.user ? `Hi, ${telegram.user.first_name}` : 'Guest'} · Theme: {theme}
           </p>
         </div>
@@ -100,18 +101,18 @@ const App = () => {
           {wallet ? (
             <>
               <span className="pill connected">{wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}</span>
-              <button onClick={() => disconnectWallet().then(() => setWallet(null))}>Disconnect</button>
+              <button className="ghost-button" onClick={() => disconnectWallet().then(() => setWallet(null))}>Disconnect</button>
             </>
           ) : (
-            <button onClick={connect}>Connect TON Wallet</button>
+            <button className="primary-button" onClick={connect}>Connect TON Wallet</button>
           )}
         </div>
       </header>
 
       <nav className="tabs">
-        <button onClick={() => setRoute('launches')}>Launches</button>
-        <button onClick={() => setRoute('create')}>Create</button>
-        <button onClick={() => setRoute('portfolio')}>Portfolio</button>
+        <button className={route === 'launches' ? 'tab-active' : ''} onClick={() => setRoute('launches')}>Launches</button>
+        <button className={route === 'create' ? 'tab-active' : ''} onClick={() => setRoute('create')}>Create</button>
+        <button className={route === 'portfolio' ? 'tab-active' : ''} onClick={() => setRoute('portfolio')}>Portfolio</button>
       </nav>
 
       {route === 'launches' ? (
