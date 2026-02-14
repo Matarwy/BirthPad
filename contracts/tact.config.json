@@ -1,8 +1,13 @@
 {
   "projects": [
     {
-      "name": "birthpad_sale",
-      "path": "contracts/SalePool.tact",
+      "name": "birthpad_launch_factory",
+      "path": "contracts/LaunchFactory.tact",
+      "output": "build"
+    },
+    {
+      "name": "birthpad_project_sale",
+      "path": "contracts/ProjectSale.tact",
       "output": "build"
     }
   ]
