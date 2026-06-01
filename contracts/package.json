@@ -16,6 +16,6 @@
   "devDependencies": {
     "@tact-lang/compiler": "^1.4.0",
     "typescript": "^5.6.3",
-    "vitest": "^2.1.4"
+    "vitest": "^4.1.0"
   }
 }
